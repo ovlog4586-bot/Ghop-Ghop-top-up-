@@ -1,0 +1,26 @@
+<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My Account</title><link rel="stylesheet" href="ui.css"></head><body><div class="box">
+<a href="/"><img class="logo" src="logo.svg" alt="Ghop Ghop Topup"></a>
+<div class="card"><p id="who"></p><p class="bal" id="bal">0.00 ৳</p></div>
+<div class="card"><h2>Add Money</h2>
+<p class="note">১) নিচের নম্বরে <b>Send Money</b> করুন: <b id="pn">...</b><br>২) টাকার পরিমাণ ও Transaction ID নিচে লিখে জমা দিন।<br>৩) যাচাই হলে কিছুক্ষণের মধ্যে ব্যালেন্সে টাকা যোগ হবে।</p>
+<label for="meth">মাধ্যম</label><select id="meth"><option>bKash</option><option>Nagad</option></select>
+<label for="amt">টাকার পরিমাণ</label><input id="amt" type="number" inputmode="decimal" min="10">
+<label for="trx">Transaction ID</label><input id="trx" maxlength="20" autocapitalize="characters">
+<button class="full" id="dep">জমা দিন</button><p class="msg" id="m"></p></div>
+<div class="card" id="orders"><h2>আমার অর্ডার</h2><div id="ol"></div></div>
+<div class="card"><h2>Add Money ইতিহাস</h2><div id="dl"></div></div>
+<a class="btn sub" href="/logout">Logout</a></div>
+<script>
+var $=function(i){return document.getElementById(i)},ST={pending:'অপেক্ষায়',done:'সম্পন্ন',cancelled:'বাতিল (টাকা ফেরত)',approved:'অনুমোদিত',rejected:'বাতিল'};
+function row(p,st){var d=document.createElement('div');d.className='row';p.forEach(function(t){var s=document.createElement('span');s.textContent=t;d.appendChild(s)});var g=document.createElement('span');g.className='tag '+st;g.textContent=ST[st]||st;d.appendChild(g);return d}
+function fill(box,list,fn){box.textContent='';if(!list.length){box.textContent='এখনো কিছু নেই';return}list.forEach(function(x){box.appendChild(fn(x))})}
+function load(){fetch('/api/my').then(function(r){if(r.status===401){location.href='/login.html';throw 0}return r.json()}).then(function(d){
+$('who').textContent=d.user.name+' ('+d.user.phone+')';$('bal').textContent=d.user.balance.toFixed(2)+' ৳';
+fill($('ol'),d.orders,function(o){return row([o.pack+' • ID '+o.playerId+' • '+o.price+'৳'],o.status)});
+fill($('dl'),d.deposits,function(x){return row([x.method+' • '+x.amount+'৳ • '+x.trxid],x.status)})}).catch(function(){})}
+fetch('/api/config').then(function(r){return r.json()}).then(function(c){$('pn').textContent='bKash: '+c.bkash+'  |  Nagad: '+c.nagad});
+$('dep').onclick=function(){var m=$('m');m.className='msg';m.textContent='';
+fetch('/api/deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:$('meth').value,amount:$('amt').value,trxid:$('trx').value})})
+.then(function(r){return r.json()}).then(function(d){if(d.error){m.textContent=d.error}else{m.className='msg g';m.textContent='জমা হয়েছে, যাচাইয়ের অপেক্ষা করুন';$('trx').value='';$('amt').value='';load()}})};
+load();
+</script></body></html>

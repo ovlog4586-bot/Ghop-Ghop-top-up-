@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Admin</title><link rel="stylesheet" href="ui.css">
+<style>.tb{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px}.tb button{flex:0 0 auto;padding:10px 14px;font-size:14px}.tb button.sub.on{background:#1d4ed8;color:#fff}.bn{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #e1e8f5}.bn img{width:150px;height:75px;object-fit:cover;border-radius:10px;background:#e2e8f0}textarea{width:100%;padding:12px;border:1.5px solid #cbd5e1;border-radius:12px;font:inherit;font-size:15px}.pr{display:flex;gap:8px;align-items:center;padding:10px 0;border-top:1px solid #e1e8f5;font-size:13px}.pr span{flex:1}.pr input[type=number]{width:90px}.pr input[type=checkbox]{width:auto}</style></head><body><div class="box" style="max-width:720px">
+<h1>Admin Panel</h1>
+<div class="card" id="lg"><label for="pw">অ্যাডমিন পাসওয়ার্ড</label><input id="pw" type="password"><button class="full" id="go">Login</button><p class="msg" id="m"></p></div>
+<div id="app" class="hide"><p class="note" id="st"></p>
+<div class="tb" id="tb"></div><div class="card" id="body"></div></div></div>
+<script>
+var $=function(i){return document.getElementById(i)},D=null,tab='money';
+function api(u,b){return fetch(u,b===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json()})}
+function E(t,x,c){var e=document.createElement(t);if(x!=null)e.textContent=x;if(c)e.className=c;return e}
+function btn(t,c,f){var b=E('button',t,c);b.onclick=f;return b}
+function act(u,b,ask){return function(){if(ask&&!confirm(ask))return;api(u,b).then(function(r){if(r.error)alert(r.error);load()})}}
+function field(box,lab,id,val,area){box.appendChild(E('label',lab));var i=E(area?'textarea':'input');if(area)i.rows=4;i.id=id;i.value=val||'';box.appendChild(i)}
+var TABS=[['money','টাকা ও অর্ডার'],['banner','ব্যানার'],['set','সেটিং'],['pk','প্যাকেজ'],['users','ইউজার']];
+function draw(){var tb=$('tb');tb.textContent='';TABS.forEach(function(t){var b=btn(t[1],'sub'+(t[0]===tab?' on':''),function(){tab=t[0];draw()});tb.appendChild(b)});
+var box=$('body');box.textContent='';$('st').textContent='মোট ইউজার: '+D.count;
+if(tab==='money'){box.appendChild(E('h2','Add Money রিকোয়েস্ট'));
+D.deposits.forEach(function(x){box.appendChild(row(x.at.slice(0,16).replace('T',' ')+' • '+x.phone+' • '+x.method+' • '+x.amount+'৳ • '+x.trxid,x.status,[['Approve','ok','/api/admin/deposit',{id:x.id,status:'approved'}],['Reject','no','/api/admin/deposit',{id:x.id,status:'rejected'}]]))});
+box.appendChild(E('h2','অর্ডার (ডেলিভারি করে Done চাপুন)')).style.marginTop='18px';
+D.orders.forEach(function(o){box.appendChild(row(o.at.slice(0,16).replace('T',' ')+' • '+o.phone+' • '+o.pack+' • ID '+o.playerId+' • '+o.price+'৳',o.status,[['Done','ok','/api/admin/order',{id:o.id,status:'done'}],['Cancel+Refund','no','/api/admin/order',{id:o.id,status:'cancelled'}]]))})}
+if(tab==='banner'){box.appendChild(E('h2','হোম পেজের ব্যানার'));var cur=D.settings.banners&&D.settings.banners.length?D.settings.banners:D.defb;
+cur.forEach(function(u,i){var r=E('div','','bn'),im=E('img');im.src=u;r.appendChild(im);
+var c=E('div');c.appendChild(btn('↑','sub',function(){mv(cur,i,-1)}));c.appendChild(btn('↓','sub',function(){mv(cur,i,1)}));c.appendChild(btn('মুছুন','no',function(){if(confirm('ব্যানার মুছবেন?'))api('/api/admin/banners',{list:cur.filter(function(x){return x!==u})}).then(load)}));c.style.display='flex';c.style.gap='6px';r.appendChild(c);box.appendChild(r)});
+box.appendChild(E('label','নতুন ব্যানার যোগ করুন (ছবি বেছে নিন)'));var f=E('input');f.type='file';f.accept='image/*';f.onchange=function(){up(f.files[0])};box.appendChild(f);
+box.appendChild(E('p','সেরা মাপ: ১২০০×৬০০ (২:১)। ছবি নিজে ছোট হয়ে আপলোড হবে।','note'))}
+if(tab==='set'){var s=D.settings;box.appendChild(E('h2','সাইট সেটিং'));field(box,'সাইটের নাম','f_siteName',s.siteName);field(box,'নোটিফিকেশন লেখা (সাইটে ঢুকলে দেখাবে)','f_notice',s.notice,1);
+field(box,'Telegram চ্যানেল লিংক','f_telegram',s.telegram);field(box,'Telegram গ্রুপ লিংক','f_group',s.group);field(box,'YouTube লিংক','f_youtube',s.youtube);
+field(box,'bKash নম্বর (পেমেন্ট নেওয়ার)','f_bkash',s.bkash);field(box,'Nagad নম্বর (পেমেন্ট নেওয়ার)','f_nagad',s.nagad);field(box,'Google Client ID (Google login চালুর জন্য)','f_googleClientId',s.googleClientId);
+box.appendChild(btn('Save','full',function(){var b={};['siteName','notice','telegram','group','youtube','bkash','nagad','googleClientId'].forEach(function(k){b[k]=$('f_'+k).value});api('/api/admin/settings',b).then(function(){alert('সেভ হয়েছে ✅');load()})}))}
+if(tab==='pk'){box.appendChild(E('h2','প্যাকেজের দাম'));D.pk.forEach(function(p){var r=E('div','','pr'),n=E('span',(p.game==='ff'?'[FF Likes] ':'[UID Topup] ')+p.name);var i=E('input');i.type='number';i.value=p.o&&p.o.price>0?p.o.price:p.price;var c=E('input');c.type='checkbox';c.checked=!!(p.o&&p.o.off);var l=E('label','লুকান');l.style.margin='0';
+r.appendChild(n);r.appendChild(i);r.appendChild(c);r.appendChild(l);r.appendChild(btn('Save','ok',act('/api/admin/price',null)));r.lastChild.onclick=function(){api('/api/admin/price',{key:p.key,price:i.value,off:c.checked}).then(function(x){alert('সেভ হয়েছে ✅')})};box.appendChild(r)})}
+if(tab==='users'){box.appendChild(E('h2','ইউজার ও ব্যালেন্স'));D.users.forEach(function(u){var r=E('div','','pr'),n=E('span',u.name+' • '+u.phone+' • '+u.balance.toFixed(2)+'৳');var i=E('input');i.type='number';i.placeholder='± টাকা';
+r.appendChild(n);r.appendChild(i);r.appendChild(btn('Add','ok',function(){if(!i.value)return;api('/api/admin/balance',{id:u.id,amount:i.value}).then(function(x){if(x.error)alert(x.error);load()})}));box.appendChild(r)});box.appendChild(E('p','মাইনাস দিলে ব্যালেন্স কমবে (যেমন -50)।','note'))}}
+function row(t,st,acts){var d=E('div','','row');d.appendChild(E('span',t));if(st==='pending'){acts.forEach(function(a){d.appendChild(btn(a[0],a[1],act(a[2],a[3],a[0]+'?')))})}else d.appendChild(E('span',st,'tag '+st));return d}
+function mv(l,i,d){var j=i+d;if(j<0||j>=l.length)return;var a=l.slice();var t=a[i];a[i]=a[j];a[j]=t;api('/api/admin/banners',{list:a}).then(load)}
+function up(file){if(!file)return;var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){var w=Math.min(1400,im.width),h=Math.round(im.height*w/im.width),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);api('/api/admin/upload',{data:c.toDataURL('image/jpeg',.85)}).then(function(x){if(x.error)alert(x.error);load()})};im.src=r.result};r.readAsDataURL(file)}
+function load(){fetch('/api/admin/data').then(function(r){if(r.status===401){$('lg').className='card';$('app').className='hide';throw 0}return r.json()}).then(function(d){D=d;$('lg').className='hide';$('app').className='';draw()}).catch(function(){})}
+$('go').onclick=function(){api('/api/admin/login',{password:$('pw').value}).then(function(r){if(r.error)$('m').textContent=r.error;else load()})};
+load();setInterval(function(){if(tab==='money'&&!$('app').className)load()},30000);
+</script></body></html>

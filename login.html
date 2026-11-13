@@ -1,0 +1,16 @@
+<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login</title><link rel="stylesheet" href="ui.css"></head><body><div class="box">
+<a href="/"><img class="logo" src="logo.svg" alt="Ghop Ghop Topup"></a>
+<div class="card"><div class="tabs"><button id="t1">Login</button><button id="t2" class="sub">Register</button></div>
+<form id="f"><div id="nm" class="hide"><label for="name">আপনার নাম</label><input id="name" maxlength="30" autocomplete="name"></div>
+<label for="phone">মোবাইল নম্বর</label><input id="phone" inputmode="numeric" maxlength="11" placeholder="01XXXXXXXXX" autocomplete="tel">
+<label for="pw">পাসওয়ার্ড</label><input id="pw" type="password" autocomplete="current-password">
+<button class="full" id="go">Login</button><p class="msg" id="m"></p></form><div id="gw" class="hide"><p class="note" style="text-align:center">অথবা</p><div id="g" style="display:flex;justify-content:center;margin-top:8px"></div></div></div></div>
+<script>
+var mode='login',$=function(i){return document.getElementById(i)};
+function set(m){mode=m;$('nm').className=m==='register'?'':'hide';$('t1').className=m==='login'?'':'sub';$('t2').className=m==='register'?'':'sub';$('go').textContent=m==='login'?'Login':'অ্যাকাউন্ট খুলুন';$('m').textContent=''}
+$('t1').onclick=function(){set('login')};$('t2').onclick=function(){set('register')};
+$('f').onsubmit=function(e){e.preventDefault();$('m').textContent='';
+fetch('/api/'+mode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('name').value,phone:$('phone').value,password:$('pw').value})})
+.then(function(r){return r.json()}).then(function(d){if(d.error){$('m').textContent=d.error}else{location.href='/'}}).catch(function(){$('m').textContent='সার্ভারে সমস্যা, আবার চেষ্টা করুন'})};
+fetch('/api/config').then(function(r){return r.json()}).then(function(c){if(!c.googleClientId)return;var s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.onload=function(){google.accounts.id.initialize({client_id:c.googleClientId,callback:function(r){fetch('/api/google',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:r.credential})}).then(function(x){return x.json()}).then(function(d){if(d.error){$('m').textContent=d.error}else{location.href='/'}})}});google.accounts.id.renderButton($('g'),{theme:'outline',size:'large',width:280,text:'continue_with'});$('gw').className=''};document.head.appendChild(s)}).catch(function(){});
+</script></body></html>
